@@ -169,6 +169,12 @@ export default function JobsPage() {
     await loadJobs();
   };
 
+  const dismissJob = async (jobId: string) => {
+    setJobs(prev => prev.filter(j => j.id !== jobId));
+    setTotal(prev => prev - 1);
+    await addJobAction(jobId, 'hide');
+  };
+
   const handleRemoveAction = async (jobId: string, action: string) => {
     await removeJobAction(jobId, action);
     await loadJobs();
@@ -349,7 +355,7 @@ export default function JobsPage() {
               >
                 {isBookmarked(job) ? '\u2605' : '\u2606'}
               </button>
-              <button style={styles.btnSmall} title="Dismiss" onClick={() => handleAction(job.id, 'hide')}>
+              <button style={styles.btnSmall} title="Dismiss" onClick={() => dismissJob(job.id)}>
                 &#10005;
               </button>
             </div>
@@ -434,7 +440,7 @@ export default function JobsPage() {
               <button style={styles.btnSecondary} onClick={() => { toggleStar(selectedJob.id, selectedJob); setSelectedJob(null); }}>
                 {isBookmarked(selectedJob) ? 'Unstar' : 'Bookmark'}
               </button>
-              <button style={{ ...styles.btnSecondary, borderColor: '#f85149', color: '#f85149' }} onClick={() => { handleAction(selectedJob.id, 'hide'); setSelectedJob(null); }}>
+              <button style={{ ...styles.btnSecondary, borderColor: '#f85149', color: '#f85149' }} onClick={() => { dismissJob(selectedJob.id); setSelectedJob(null); }}>
                 Dismiss
               </button>
             </div>
