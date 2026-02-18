@@ -59,13 +59,13 @@ const styles = {
   },
   jobRow: {
     display: 'grid',
-    gridTemplateColumns: '60px 1fr 140px 100px 100px 80px 100px',
+    gridTemplateColumns: '60px 1fr 140px 100px 100px 80px 80px 100px',
     alignItems: 'center', gap: 12,
     padding: '12px 16px', borderBottom: '1px solid #21262d',
   },
   jobRowHeader: {
     display: 'grid',
-    gridTemplateColumns: '60px 1fr 140px 100px 100px 80px 100px',
+    gridTemplateColumns: '60px 1fr 140px 100px 100px 80px 80px 100px',
     gap: 12, padding: '8px 16px', fontSize: 12, color: '#8b949e',
     borderBottom: '1px solid #30363d', fontWeight: 600 as const,
   },
@@ -317,6 +317,7 @@ export default function JobsPage() {
           <span>Seniority</span>
           <span>Location</span>
           <span>Source</span>
+          <span>Posted</span>
           <span>Actions</span>
         </div>
 
@@ -347,6 +348,7 @@ export default function JobsPage() {
             <span style={{ fontSize: 13, color: '#8b949e' }}>{job.seniority ?? ''}</span>
             <span style={{ fontSize: 13, color: '#8b949e' }}>{job.location ?? ''}</span>
             <span style={{ fontSize: 12, color: '#58a6ff' }}>{job.source}</span>
+            <span style={{ fontSize: 12, color: '#8b949e' }}>{formatDate(job.postedAt)}</span>
             <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
               <button
                 style={isBookmarked(job) ? { ...styles.btnSmall, color: '#d29922' } : styles.btnSmall}
