@@ -134,8 +134,14 @@ export function getJobs(filters: JobFilters = {}): { jobs: JobWithScore[]; total
     params.push(filters.minScore);
   }
   if (filters.category) {
-    conditions.push('j.category = ?');
-    params.push(filters.category);
+    const categoryMap: Record<string, string[]> = {
+      BIZDEV: ['BIZDEV', 'business-development', 'business-development-jobs'],
+      GROWTH: ['GROWTH', 'growth-jobs'],
+      PRODUCT: ['PRODUCT'],
+    };
+    const variants = categoryMap[filters.category] ?? [filters.category];
+    conditions.push(`j.category IN (${variants.map(() => '?').join(',')})`);
+    params.push(...variants);
   }
   if (filters.location) {
     conditions.push('j.location = ?');
@@ -206,6 +212,9 @@ export function getJobs(filters: JobFilters = {}): { jobs: JobWithScore[]; total
   return { jobs: rows, total: countRow.total };
 }
 
+const US_OR_REMOTE_PATTERN =
+  /\b(remote|anywhere|worldwide|united states|usa|us\b|u\.s\.|new york|nyc|san francisco|los angeles|chicago|austin|miami|boston|seattle|denver|portland|atlanta|dallas|houston|philadelphia|phoenix|minneapolis|detroit|nashville|raleigh|charlotte|pittsburgh|salt lake|san diego|san jose|washington\s*d\.?c\.?|california|texas|florida|georgia|colorado|virginia|washington|oregon|north carolina|south carolina|illinois|massachusetts|pennsylvania|ohio|michigan|arizona|tennessee|maryland|minnesota|wisconsin|indiana|missouri|connecticut|iowa|utah|nevada|new jersey|new hampshire|alabama|kentucky|louisiana|oklahoma|arkansas|mississippi|hawaii|idaho|montana|nebraska|new mexico|rhode island|vermont|wyoming|maine|delaware|west virginia|south dakota|north dakota|alaska|\bca\b|\bny\b|\bnc\b|\bfl\b|\btx\b|\bwa\b|\bco\b|\bil\b|\bma\b)\b/i;
+
 export function getFilterOptions(): { categories: string[]; locations: string[] } {
   const db = getDatabase();
   const categories = db.prepare(
@@ -215,8 +224,14 @@ export function getFilterOptions(): { categories: string[]; locations: string[] 
     'SELECT DISTINCT location FROM jobs WHERE location IS NOT NULL ORDER BY location'
   ).all() as { location: string }[];
   return {
-    categories: categories.map(r => r.category),
-    locations: locations.map(r => r.location),
+    categories: [...new Set(categories.map(r => {
+      const c = r.category.toLowerCase().replace(/-jobs$/, '').replace(/-/g, '');
+      if (c === 'bizdev' || c === 'businessdevelopment') return 'BIZDEV' as string;
+      if (c === 'growth') return 'GROWTH' as string;
+      if (c === 'product') return 'PRODUCT' as string;
+      return null as string | null;
+    }).filter((c): c is string => c !== null))],
+    locations: locations.map(r => r.location).filter(l => US_OR_REMOTE_PATTERN.test(l)),
   };
 }
 
