@@ -1,5 +1,6 @@
 import { ScraperAdapter, RawJob } from './types';
 import { EXCLUDED_TITLE_PATTERNS, isLocationUSOrRemote } from './filters';
+import { normalizeJobUrl } from '../utils/jobUrls';
 
 const BASE_URL = 'https://middleware.jobstash.xyz/public/jobs/list';
 const PAGE_LIMIT = 20;
@@ -103,7 +104,12 @@ export class JobStashAdapter implements ScraperAdapter {
         const sourceId = job.shortUUID || job.id || `${job.title}-${job.organization?.name}`;
         allJobs.push({
           sourceId: String(sourceId),
-          url: job.url,
+          url: normalizeJobUrl({
+            source: this.name,
+            sourceId: String(sourceId),
+            title: job.title,
+            url: job.url,
+          }) ?? undefined,
           title: job.title,
           company: job.organization?.name,
           description: job.summary || job.description,

@@ -1,8 +1,16 @@
 import { initializeDatabase } from './schema';
 import type Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
+import { normalizeJobUrl } from '../utils/jobUrls';
 
 let db: Database.Database;
+
+function normalizeJobRowUrl<T extends Pick<JobRow, 'source' | 'sourceId' | 'title' | 'url'>>(job: T): T {
+  return {
+    ...job,
+    url: normalizeJobUrl(job),
+  };
+}
 
 export function getDatabase(): Database.Database {
   if (!db) {
@@ -80,6 +88,7 @@ export function upsertJob(job: {
   const db = getDatabase();
   const id = uuidv4();
   const now = new Date().toISOString();
+  const normalizedUrl = normalizeJobUrl(job);
 
   const existing = db.prepare(
     'SELECT id FROM jobs WHERE source = ? AND source_id = ?'
@@ -94,7 +103,7 @@ export function upsertJob(job: {
         raw_data = ?
       WHERE id = ?
     `).run(
-      job.url ?? null, job.title, job.company ?? null, job.description ?? null,
+      normalizedUrl, job.title, job.company ?? null, job.description ?? null,
       job.location ?? null, job.locationType ?? null, job.seniority ?? null,
       job.category ?? null, job.salaryMin ?? null, job.salaryMax ?? null,
       JSON.stringify(job.tags ?? []), JSON.stringify(job.chains ?? []),
@@ -110,7 +119,7 @@ export function upsertJob(job: {
       tags, chains, posted_at, scraped_at, raw_data)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    id, job.source, job.sourceId, job.url ?? null, job.title,
+    id, job.source, job.sourceId, normalizedUrl, job.title,
     job.company ?? null, job.description ?? null, job.location ?? null,
     job.locationType ?? null, job.seniority ?? null, job.category ?? null,
     job.salaryMin ?? null, job.salaryMax ?? null,
@@ -209,7 +218,7 @@ export function getJobs(filters: JobFilters = {}): { jobs: JobWithScore[]; total
     LIMIT ? OFFSET ?
   `).all(...params, limit, offset) as JobWithScore[];
 
-  return { jobs: rows, total: countRow.total };
+  return { jobs: rows.map(normalizeJobRowUrl), total: countRow.total };
 }
 
 const US_OR_REMOTE_PATTERN =
@@ -260,7 +269,7 @@ export function getJobById(id: string): (Omit<JobWithScore, 'actions'> & { actio
     FROM job_actions WHERE job_id = ?
   `).all(id) as { action: string; notes: string | null; createdAt: string }[];
 
-  return { ...job, actions };
+  return { ...normalizeJobRowUrl(job), actions };
 }
 
 export function getUnscoredJobs(limit: number = 50): { id: string; title: string; company: string | null; description: string | null; seniority: string | null; category: string | null; tags: string; chains: string; rawData: string }[] {
